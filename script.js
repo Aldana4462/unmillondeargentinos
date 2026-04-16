@@ -2,7 +2,7 @@ const url = "https://yrmzpdbszroiuhyicnwo.supabase.co/rest/v1/mensajes?select=id
 const apiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlybXpwZGJzenJvaXVoeWljbndvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMTc4OTUsImV4cCI6MjA5MTc5Mzg5NX0.XC4iOw3VhVHYiUtLEXGYVbKBtWzslfHSZaaaCvB3D88";
 
 const TOTAL_PUNTOS = 400;
-let margenTop = 140;
+let margenTop = 0;
 const margenBottom = 20;
 const margenLateral = 50;
 const VELOCIDAD_MAX = 0.08;
@@ -23,7 +23,7 @@ let ultimaRotacionMs = 0;
 function actualizarMargenTop() {
   const header = document.querySelector(".header");
   const altoHeader = header ? header.offsetHeight : 10;
-  margenTop = altoHeader + 20;
+  margenTop = altoHeader + 1;
 }
 
 function obtenerPosicionAleatoria() {
