@@ -85,23 +85,21 @@
     }
 
     .paleta {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
       gap: 10px;
     }
 
-    .swatch {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      border: 1px solid transparent;
+    .mapa-color {
+      width: 100%;
+      height: 150px;
+      border-radius: 10px;
       cursor: pointer;
-      padding: 0;
-      background: transparent;
+      display: block;
     }
 
-    .swatch.selected {
-      border: 2px solid #000;
+    .mapa-ayuda {
+      font-size: 12px;
+      color: #666;
     }
 
     .preview {
@@ -164,7 +162,10 @@
 
       <div class="color-wrap">
         <label>Elegí el color de tu punto</label>
-        <div id="paleta" class="paleta" aria-label="Paleta de colores"></div>
+        <div class="paleta">
+          <canvas id="mapaColor" class="mapa-color" width="420" height="150" aria-label="Mapa de color"></canvas>
+          <div class="mapa-ayuda">Elegí cualquier color desde el mapa.</div>
+        </div>
         <div class="preview">
           <span id="previewDot" class="preview-dot"></span>
           <span id="previewText">Color seleccionado</span>
@@ -185,11 +186,12 @@
     const form = document.getElementById("puntoForm");
     const textoInput = document.getElementById("texto");
     const contadorTexto = document.getElementById("contadorTexto");
-    const paleta = document.getElementById("paleta");
+    const mapaColor = document.getElementById("mapaColor");
+    const ctxMapaColor = mapaColor.getContext("2d");
     const previewDot = document.getElementById("previewDot");
+    const previewText = document.getElementById("previewText");
     const msg = document.getElementById("msg");
-    const COLORES = ["#000000", "#ff5f5f", "#ff8a00", "#f2c94c", "#2ecc71", "#00bcd4", "#3f51b5", "#9b59b6", "#e91e63", "#8d6e63"];
-    let colorSeleccionado = COLORES[0];
+    let colorSeleccionado = "#000000";
 
     function limpiarHTML(value) {
       return String(value || "").replace(/[<>]/g, "").trim();
@@ -211,23 +213,54 @@
 
     function actualizarPreview() {
       previewDot.style.background = colorSeleccionado;
+      previewText.textContent = "Color seleccionado: " + colorSeleccionado;
     }
 
-    function renderPaleta() {
-      COLORES.forEach((color, index) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "swatch" + (index === 0 ? " selected" : "");
-        btn.style.background = color;
-        btn.setAttribute("aria-label", "Seleccionar " + color);
-        btn.addEventListener("click", () => {
-          colorSeleccionado = color;
-          paleta.querySelectorAll(".swatch").forEach((item) => item.classList.remove("selected"));
-          btn.classList.add("selected");
-          actualizarPreview();
-        });
-        paleta.appendChild(btn);
-      });
+    function hslAHex(h, s, l) {
+      l /= 100;
+      const a = s * Math.min(l, 1 - l) / 100;
+      const fn = (n) => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, "0");
+      };
+      return `#${fn(0)}${fn(8)}${fn(4)}`;
+    }
+
+    function dibujarMapaColor() {
+      const width = mapaColor.width;
+      const height = mapaColor.height;
+      const image = ctxMapaColor.createImageData(width, height);
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const h = (x / width) * 360;
+          const s = 100;
+          const l = 90 - (y / height) * 65;
+          const hex = hslAHex(h, s, l);
+          const r = parseInt(hex.slice(1, 3), 16);
+          const g = parseInt(hex.slice(3, 5), 16);
+          const b = parseInt(hex.slice(5, 7), 16);
+          const idx = (y * width + x) * 4;
+          image.data[idx] = r;
+          image.data[idx + 1] = g;
+          image.data[idx + 2] = b;
+          image.data[idx + 3] = 255;
+        }
+      }
+
+      ctxMapaColor.putImageData(image, 0, 0);
+    }
+
+    function seleccionarColorDesdeMapa(event) {
+      const rect = mapaColor.getBoundingClientRect();
+      const scaleX = mapaColor.width / rect.width;
+      const scaleY = mapaColor.height / rect.height;
+      const x = Math.max(0, Math.min(mapaColor.width - 1, Math.floor((event.clientX - rect.left) * scaleX)));
+      const y = Math.max(0, Math.min(mapaColor.height - 1, Math.floor((event.clientY - rect.top) * scaleY)));
+      const pixel = ctxMapaColor.getImageData(x, y, 1, 1).data;
+      colorSeleccionado = "#" + [pixel[0], pixel[1], pixel[2]].map((v) => v.toString(16).padStart(2, "0")).join("");
+      actualizarPreview();
     }
 
     textoInput.addEventListener("input", () => {
@@ -235,7 +268,17 @@
       actualizarContador();
     });
 
-    renderPaleta();
+    dibujarMapaColor();
+    let pintandoColor = false;
+    mapaColor.addEventListener("pointerdown", (event) => {
+      pintandoColor = true;
+      seleccionarColorDesdeMapa(event);
+    });
+    mapaColor.addEventListener("pointermove", (event) => {
+      if (!pintandoColor) return;
+      seleccionarColorDesdeMapa(event);
+    });
+    window.addEventListener("pointerup", () => { pintandoColor = false; });
     ajustarAltoTextarea();
     actualizarContador();
     actualizarPreview();
@@ -284,10 +327,7 @@
 
         setMsg("Listo, ya ocupaste tu lugar", "ok");
         form.reset();
-        colorSeleccionado = COLORES[0];
-        paleta.querySelectorAll(".swatch").forEach((item, index) => {
-          item.classList.toggle("selected", index === 0);
-        });
+        colorSeleccionado = "#000000";
         ajustarAltoTextarea();
         actualizarContador();
         actualizarPreview();
