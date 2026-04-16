@@ -22,7 +22,7 @@ let ultimaRotacionMs = 0;
 
 function actualizarMargenTop() {
   const header = document.querySelector(".header");
-  const altoHeader = header ? header.offsetHeight : 120;
+  const altoHeader = header ? header.offsetHeight : 10;
   margenTop = altoHeader + 20;
 }
 
