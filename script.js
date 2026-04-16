@@ -22,8 +22,8 @@ let ultimaRotacionMs = 0;
 
 function actualizarMargenTop() {
   const header = document.querySelector(".header");
-  const altoHeader = header ? header.offsetHeight : 10;
-  margenTop = altoHeader + 1;
+  const altoHeader = header ? header.offsetHeight : 0;
+  margenTop = altoHeader + 0;
 }
 
 function obtenerPosicionAleatoria() {
